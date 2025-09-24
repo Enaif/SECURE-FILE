@@ -1,18 +1,9 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Sep 24 02:23:49 2025
-
-@author: Soufiane.MOUMID
-"""
-
-from flask import Flask, render_template_string
+import streamlit as st
 import requests
 from bs4 import BeautifulSoup
 import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-app = Flask(__name__)
 
 # URLs des tokens
 urls = {
@@ -62,112 +53,18 @@ def get_holders_data():
     return results
 
 
-@app.route('/')
-def index():
-    data = get_holders_data()
-    total = sum(val for val in data.values() if isinstance(val, int))
+# ---- UI Streamlit ----
+st.set_page_config(page_title="AITECH Token Holders Tracker", page_icon="📊", layout="centered")
 
-    html = '''
-    <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>AITECH Token Holders Tracker</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        /* Modern design with smooth shadows and rounded cards */
-        body {
-            margin: 0;
-            padding: 40px;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(to right, #f1f3f8, #e3e7ee);
-            color: #2c3e50;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+st.title("📊 AITECH Token Holders Tracker")
 
-        h1 {
-            font-size: 32px;
-            margin-bottom: 30px;
-            color: #2d3436;
-        }
+data = get_holders_data()
+total = sum(val for val in data.values() if isinstance(val, int))
 
-        .card {
-            background: #ffffff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-            border-radius: 16px;
-            padding: 20px 30px;
-            margin: 10px 0;
-            width: 100%;
-            max-width: 400px;
-            transition: transform 0.2s ease;
-        }
+for chain, value in data.items():
+    if isinstance(value, int):
+        st.success(f"*{chain}*: {value}")
+    else:
+        st.error(f"*{chain}*: {value}")
 
-        .card:hover {
-            transform: translateY(-3px);
-        }
-
-        .success {
-            border-left: 5px solid #27ae60;
-        }
-
-        .error {
-            border-left: 5px solid #e74c3c;
-        }
-
-        .chain-title {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .chain-value {
-            font-size: 18px;
-        }
-
-        .total {
-            margin-top: 30px;
-            font-size: 22px;
-            font-weight: bold;
-            color: #34495e;
-        }
-
-        @media (max-width: 480px) {
-            body {
-                padding: 20px;
-            }
-
-            h1 {
-                font-size: 24px;
-            }
-
-            .card {
-                padding: 15px 20px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <h1>📊 AITECH Token Holders Tracker</h1>
-
-    {% for chain, value in data.items() %}
-        <div class="card {{ 'success' if value is number else 'error' }}">
-            <div class="chain-title">{{ chain }}</div>
-            <div class="chain-value">{{ value }}</div>
-        </div>
-    {% endfor %}
-
-    <div class="total">🔢 Total holders across all chains: {{ total }}</div>
-</body>
-</html>
-
-    '''
-
-    def is_number(val):
-        return isinstance(val, int)
-
-    return render_template_string(html, data=data, total=total, is_number=is_number)
-
-if __name__ == '_main_':
-    app.run(debug=False)
+st.markdown(f"### 🔢 Total holders across all chains: *{total}*")
