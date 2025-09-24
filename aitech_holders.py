@@ -25,6 +25,8 @@ headers = {
 
 def get_holders_data():
     results = {}
+    proxy_url = "https://api.allorigins.win/get"
+
     for chain, url in urls.items():
         try:
             if chain == 'Solana':
@@ -38,17 +40,25 @@ def get_holders_data():
                 response = requests.get(url, params=params, headers=sol_headers, verify=False)
                 if response.ok:
                     data = response.json()
-                    results[chain] = data.get("data")['holders']
+                    results[chain] = data.get("data", {}).get("total")
                 else:
                     results[chain] = "Error"
             else:
-                response = requests.get(url, headers=headers, verify=False)
+                # On passe par le proxy pour éviter Cloudflare
+                proxy_params = {"url": url}
+                response = requests.get(proxy_url, params=proxy_params, headers=headers, verify=False)
+
                 if not response.ok:
                     results[chain] = "Error"
                     continue
-                soup = BeautifulSoup(response.text, 'html.parser')
+
+                data = response.json()
+                html_content = data.get("contents", "")
+                soup = BeautifulSoup(html_content, 'html.parser')
+
                 row = soup.find('div', id='ContentPlaceHolder1_tr_tokenHolders')
                 div = row.find('div', class_='d-flex flex-wrap gap-2') if row else None
+
                 if div:
                     count = int(div.text.strip().split()[0].replace(",", ""))
                     results[chain] = count
@@ -74,4 +84,5 @@ for chain, value in data.items():
         st.error(f"*{chain}*: {value}")
 
 st.markdown(f"### 🔢 Total holders across all chains: *{total}*")
+
 
